@@ -1,0 +1,98 @@
+!pip install text2emotion
+!pip install Pyaudio
+!pip install SpeechRecognition
+!pip install textblob
+
+!pip install vaderSentiment
+
+import speech_recognition as sr
+
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
+sid = SentimentIntensityAnalyzer()
+
+def recognize_speech_from_mic(recognizer, microphone):
+
+    # check that recognizer and microphone arguments are appropriate type
+    if not isinstance(recognizer, sr.Recognizer):
+        raise TypeError("`recognizer` must be `Recognizer` instance")
+
+    if not isinstance(microphone, sr.Microphone):
+        raise TypeError("`microphone` must be `Microphone` instance")
+
+    # adjust the recognizer sensitivity to ambient noise and record audio
+    # from the microphone
+    with microphone as source:
+        recognizer.adjust_for_ambient_noise(source) # #  analyze the audio source for 1 second
+        audio = recognizer.listen(source)
+
+    # set up the response object
+    response = {
+        "success": True,
+        "error": None,
+        "transcription": None
+    }
+
+    # try recognizing the speech in the recording
+    # if a RequestError or UnknownValueError exception is caught,
+    #   update the response object accordingly
+    try:
+        response["transcription"] = recognizer.recognize_google(audio)
+    except sr.RequestError:
+        # API was unreachable or unresponsive
+        response["success"] = False
+        response["error"] = "API unavailable/unresponsive"
+    except sr.UnknownValueError:
+        # speech was unintelligible
+        response["error"] = "Unable to recognize speech"
+
+    return response
+    
+    
+    recognizer = sr.Recognizer()
+    
+    mic = sr.Microphone(device_index=1)
+    
+    response = recognize_speech_from_mic(recognizer, mic)
+    
+    print('\nSuccess : {}\nError   : {}\n\nText from Speech\n{}\n\n{}' \
+          .format(response['success'],
+                  response['error'],
+                  '-'*17,
+                  response['transcription']))
+                  
+    temp_str = ''
+records_all = []
+while (temp_str != 'hello'):
+    print('Speak it out')
+    response = recognize_speech_from_mic(recognizer, mic)
+    if response['success']:
+        temp_str = response['transcription']
+        print('You said :' ,temp_str )
+        if (temp_str != 'bye'):
+            records_all.append(temp_str)
+print('this are the sentiments')
+print(records_all)
+
+
+records_all.remove(None)
+
+records_all
+
+def sentiment_Vader(text):
+    over_all_polarity = sid.polarity_scores(text)
+    if over_all_polarity['compound'] >= 0.05:
+        return "positive"
+    elif over_all_polarity['compound'] <= -0.05:
+        return "negative"
+    else:
+        return "neutral"
+        
+        
+ sentimets_total = {'neutral': 0 , 'positive' : 0 , 'negative':0}
+for recd_sent in records_all:
+    sentiment = sentiment_Vader(recd_sent)
+    print (sentiment,'===>',recd_sent)
+    sentimets_total[sentiment] = sentimets_total[sentiment] + 1
+    print('###########################################')
+print(sentimets_total)
